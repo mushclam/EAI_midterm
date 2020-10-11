@@ -18,8 +18,6 @@ Generate mean and standard deviation
 Main flow
 * simpleGA.py
 
-* * *
-
 ## Usage
 
 ### Test
@@ -40,6 +38,12 @@ All arguments have default values:
 * generation = 100
 * input filename = 'TestData(0-1Knapsack).txt'
 * output filename = 'result.json'
+
+### Repetition
+
+    ./test_repeat.sh [# of repeat] [output filename]
+
+All arguments of shell script is *required*.
 
 ### Analysis
     python statistics.py [option]
@@ -63,8 +67,6 @@ Example:
 Result :
 
 ![total_result.png](result/total_result.png)
-
-* * *
 
 ## Supplements
 
