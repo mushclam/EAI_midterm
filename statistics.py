@@ -1,9 +1,19 @@
 import json
 import numpy as np
+import datetime
+import argparse
 from matplotlib import pyplot as plt
 
 if __name__ == '__main__':
-    json_file = 'result.json'
+    parser = argparse.ArgumentParser(description='Output json file encoder')
+    parser.add_argument('-in', '--input', dest='input', action='store',
+                        default='result.json', type=str, help='Set the input filename.')
+    parser.add_argument('-out', '--out', dest='output', action='store',
+                        default='total_result.png', type=str, help='Set the output filename.')
+    args = parser.parse_args()
+    print(args)
+
+    json_file = args.input
     with open(json_file, 'r') as f:
         jsonDict = json.load(f)
 
@@ -28,4 +38,5 @@ if __name__ == '__main__':
     plt.xlabel('generation')
     plt.ylabel('total profit')
     plt.legend(['roulette', 'tournament'])
-    plt.show()
+    now = datetime.datetime.now()
+    plt.savefig('result/' + args.output)

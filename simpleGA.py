@@ -2,7 +2,8 @@ import random
 import os
 import sys
 import argparse
-import pickle
+import json
+import datetime
 
 from individual import Individual
 from knapsack import Knapsack
@@ -26,6 +27,8 @@ if __name__ == '__main__':
                         default=100, type=int, help='Set the maximum generation.')
     parser.add_argument('-in', '--input', dest='filename', action='store',
                         default='TestData(0-1Knapsack).txt', type=str, help='Set the input filename.')
+    parser.add_argument('-out', '--output', dest='output', action='store',
+                        default='result.json', type=str, help='Set the output filename(json).')
     args = parser.parse_args()
     # Check argument by standard output
     print(args)
@@ -75,7 +78,7 @@ if __name__ == '__main__':
     print('Pairwise Tournament Selection mean of profit:', max(tournament.mean))
 
     # Save result to json format
-    result_file = 'result.json'
+    result_file = args.output
     if os.path.isfile(result_file):
         with open(result_file, 'r') as f:
             jsonDict = json.load(f)
@@ -107,4 +110,5 @@ if __name__ == '__main__':
     plt.xlabel('generation')
     plt.ylabel('total profit')
     plt.legend(['roulette best', 'roulette mean', 'tournament best', 'tournament mean'])
-    plt.show()
+    now = datetime.datetime.now()
+    plt.savefig('result/' + now.strftime('%Y-%m-%d_%H:%M:%S') + '.png')
