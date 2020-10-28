@@ -1,14 +1,16 @@
-import random
-import os
-import sys
 import argparse
-import json
 import datetime
+import json
+import os
+import random
+import sys
 
+from matplotlib import pyplot as plt
+
+from geneticAlgorithm import GeneticAlgorithm
 from individual import Individual
 from knapsack import Knapsack
-from geneticAlgorithm import GeneticAlgorithm
-from matplotlib import pyplot as plt
+from salesman import Salesman
 
 if __name__ == '__main__':
     # Set work directory
@@ -17,6 +19,8 @@ if __name__ == '__main__':
     os.chdir(path)
     # Argument parsing
     parser = argparse.ArgumentParser(description='Basic Genetic Algorithm Sample')
+    parser.add_argument('-p', '--problem', dest='problem', action='store',
+                        default='KP', type=str, help='Choose the problem(KP/TSP).')
     parser.add_argument('-cprob', '--crossoverProbability', dest='crossover_prob', action='store', 
                         default=0.9, type=float, help='Set the probability of crossover operator.')
     parser.add_argument('-mprob', '--mutationProbability', dest='mutation_prob', action='store',
@@ -34,16 +38,23 @@ if __name__ == '__main__':
     print(args)
 
     # Set arguments to variables
+    problem = args.problem
     filename = args.filename
     crossover_prob = args.crossover_prob
     mutation_prob = args.mutation_prob
     popSize = args.population_size
     generation = args.generation
 
-    # Dataset read and parsing
-    knapsack = Knapsack(filename)
-    knapsack.reader()
-    gene_size = len(knapsack.dataset)
+    if problem == 'KP':
+        # Dataset read and parsing
+        knapsack = Knapsack(filename)
+        knapsack.reader()
+        gene_size = len(knapsack.dataset)
+    elif problem == 'TSP':
+        # Traveling Salesman Problem Dataset
+        salesman = Salesman(filename)
+        salesman.read()
+        gene_size = len(salesman.location)
 
     # Generate each GA instance
     roulette = GeneticAlgorithm(gene_size, popSize, crossover_prob, mutation_prob)

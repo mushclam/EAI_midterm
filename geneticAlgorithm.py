@@ -21,7 +21,7 @@ class GeneticAlgorithm():
     def initialization(self):
         # Generate random sampled genes of a population size
         # gene: bit-string of gene size
-        for i in range(self.populationSize):
+        for _ in range(self.populationSize):
             gene = Individual(self.geneSize)
             gene.initialization()
             self.population.append(gene)
@@ -121,7 +121,13 @@ class GeneticAlgorithm():
                     else:
                         individual.gene[i] = 0
 
-    def calculateFitness(self, knapsack):
+    def calculateFitness(self, problem, dataset):
+        if problem == 'KP':
+            self.KPFitness(dataset)
+        elif problem == 'TSP':
+            self.TSPFitness(dataset)
+
+    def KPFitness(self, knapsack):
         # capacity: total weight capacity = knapsack.capacity
         # If chromosome in gene is 1, sum weight and profit of dataset[chromosome index]
         # If total weight of gene is larger than total weight capacity, Total profit of gene is 0.
@@ -132,6 +138,11 @@ class GeneticAlgorithm():
 
         self.best.append(max(self.fitness))
         self.mean.append(sum(self.fitness) / len(self.fitness))
+
+    def TSPFitness(self, salesman):
+        self.fitness = []
+        for gene in self.population:
+            return
 
     def printBestSolution(self):
         print(max(self.fitness))

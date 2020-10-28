@@ -1,4 +1,5 @@
 import sys
+from simpleError import *
 
 class Knapsack:
     def __init__(self, filename):
