@@ -13,7 +13,7 @@ class Salesman:
                     if len(item) == 0:
                         continue
                     pair = item.split(' ')
-                    point = (pair[0], pair[1])
+                    point = (int(pair[0]), int(pair[1]))
                     self.location.append(point)
         except FileNotFoundError as e:
             print(e)

@@ -1,5 +1,7 @@
 import random
+import math
 from individual import Individual
+from kspIndividual import KSPIndividual
 
 class GeneticAlgorithm():
     def __init__(self, geneSize, populationSize, crossoverProb, mutationProb):
@@ -22,23 +24,14 @@ class GeneticAlgorithm():
         # Generate random sampled genes of a population size
         # gene: bit-string of gene size
         for _ in range(self.populationSize):
-            gene = Individual(self.geneSize)
+            gene = KSPIndividual(self.geneSize)
             gene.initialization()
             self.population.append(gene)
         print(self.populationSize, 'genes are generated!')
 
-    def rouletteWheelSelection(self):
+    def kspRouletteWheelSelection(self):
         tmp_pop = []
         roulette = 0
-
-        # Remove 0 profit individuals in population and fitness
-        n_pop = []
-        self.fitness = []
-        for individual in self.population:
-            if individual.totalProfit > 0:
-                self.fitness.append(individual.totalProfit)
-                n_pop.append(individual)
-        self.population = n_pop
 
         # Roulette wheel selection with raw profit value show bad selection performance,
         # because profits have large and not normalized value.
@@ -47,102 +40,125 @@ class GeneticAlgorithm():
         # It normalize profit values from 0 to 1.
         # For this, get max and min of fitness set.
         fmax = max(self.fitness)
-        fmin = min(self.fitness)
 
         # Max-min scaling
+        for i, individual in enumerate(self.population):
+            if individual.totalDist != 0:
+                individual.totalDist = fmax - individual.totalDist
+                self.fitness[i] = individual.totalDist
+
+        fmax = max(self.fitness)
+        fmin = min(self.fitness)
+
         for individual in self.population:
-            if individual.totalProfit != 0:
-                individual.totalProfit = (individual.totalProfit - fmin) / (fmax - fmin)
-                roulette += individual.totalProfit
+            individual.totalDist = (individual.totalDist - fmin) / (fmax - fmin)
+            roulette += individual.totalDist
 
         # Roulette Wheel Selection with max-min scaling
         for i in range(self.populationSize):
             pivot = random.random()
             k = 0
-
-            slot = self.population[k].totalProfit
+            slot = 0
             while k < len(self.population) and pivot > (slot / roulette):
+                slot += self.population[k].totalDist
                 k += 1
-                slot += self.population[k].totalProfit
 
+            k -= 1
             tmp_pop.append(self.population[k])
 
         self.population = tmp_pop
 
-    def pairwiseTournamentSelection(self):
+    def kspPairWiseTournamentSelection(self):
         # Pair-wise Tournament Selection
         tmp_pop = []
 
         for individual in self.population:
             competitive = self.population[random.randint(0, self.populationSize-1)]
-            if individual.totalProfit < competitive.totalProfit:
-                tmp_pop.append(competitive)
-            else:
+            if individual.totalDist < competitive.totalDist:
                 tmp_pop.append(individual)
+            else:
+                tmp_pop.append(competitive)
 
         self.population = tmp_pop
 
-    def threePointCrossover(self):
-        # To remove positional bias of selection,
-        # Shuffle elements of population.
+    def rankingSelection(self, phi):
+        tmp_pop = []
+        selectionProb = {}
+        alpha = (2 * self.populationSize - phi * (self.populationSize + 1)) / (self.populationSize * (self.populationSize - 1))
+        beta = (2 * (phi - 1)) / (self.populationSize * (self.populationSize - 1))
+
+        sortedFitness = sorted(self.fitness.items(), key=(lambda x:x[1]), reverse=True)
+        for i, item in enumerate(sortedFitness):
+            selectionProb[item[0]] = alpha + beta * (i+1)
+
+        for i in range(self.populationSize):
+            pivot = random.random()
+            sum_prob = 0
+            idx = 0
+            while pivot > sum_prob:
+                sum_prob += selectionProb[sortedFitness[idx][0]]
+                idx += 1
+
+            idx -= 1    
+            tmp_pop.append(self.population[sortedFitness[idx][0]])
+
+    def orderOneCrossover(self):
         random.shuffle(self.population)
 
-        # 3-point crossover
-        for i in range(int(self.populationSize / 2)):
+        for i in range(int(self.populationSize/2)):
             if random.random() < self.crossoverProb:
-                # Get 3-point randomly and sort positions.
-                pos = [random.randint(1, self.geneSize - 1),
-                        random.randint(1, self.geneSize - 1),
-                        random.randint(1, self.geneSize - 1)]
+                pos = [random.randint(0, self.geneSize-1), random.randint(0, self.geneSize-1)]
                 pos.sort()
 
-                # Take gene of parents.
                 p1 = self.population[i].gene
                 p2 = self.population[i + int(self.populationSize/2)].gene
-                # crossover based on sorted positions.
-                tmp1 = p1[:pos[0]] + p2[pos[0]:pos[1]] + p1[pos[1]:pos[2]] + p2[pos[2]:]
-                tmp2 = p2[:pos[0]] + p1[pos[0]:pos[1]] + p2[pos[1]:pos[2]] + p1[pos[2]:]
-                # Generate children.
-                np1 = Individual(self.geneSize)
-                np2 = Individual(self.geneSize)
+
+                ch1 = p2[pos[0]:pos[1]]
+                ch2 = p1[pos[0]:pos[1]]
+
+                tmp1 = []
+                tmp2 = []
+
+                for locus in p1:
+                    if not locus in ch1:
+                        tmp1.append(locus)
+                for locus in p2:
+                    if not locus in ch2:
+                        tmp2.append(locus)
+
+                ch1 = tmp1[:pos[0]] + ch1 + tmp1[pos[0]:]
+                ch2 = tmp2[:pos[0]] + ch2 + tmp2[pos[0]:]
+
+                np1 = KSPIndividual(self.geneSize)
+                np2 = KSPIndividual(self.geneSize)
                 np1.initialization(tmp1)
                 np2.initialization(tmp2)
-                # Put into population.
                 self.population[i] = np1
                 self.population[i + int(self.populationSize/2)] = np2
 
-    def bitwiseMutation(self):
-        # 0 to 1, 1 to 0 if locus is mutated
+    def reorderMutation(self):
         for individual in self.population:
             for i in range(self.geneSize):
                 if random.random() < self.mutationProb:
-                    if individual.gene[i] == 0:
-                        individual.gene[i] = 1
-                    else:
-                        individual.gene[i] = 0
+                    idx = random.randint(0, self.geneSize - 1)
+                    while idx == i:
+                        idx = random.randint(0, self.geneSize - 1)
 
-    def calculateFitness(self, problem, dataset):
-        if problem == 'KP':
-            self.KPFitness(dataset)
-        elif problem == 'TSP':
-            self.TSPFitness(dataset)
+                    tmp = individual.gene[i]
+                    individual.gene[i] = individual.gene[idx]
+                    individual.gene[idx] = tmp
 
-    def KPFitness(self, knapsack):
-        # capacity: total weight capacity = knapsack.capacity
-        # If chromosome in gene is 1, sum weight and profit of dataset[chromosome index]
-        # If total weight of gene is larger than total weight capacity, Total profit of gene is 0.
-        self.fitness = []
-        for gene in self.population:
-            gene.evaluation(knapsack)
-            self.fitness.append(gene.totalProfit)
+    def calculateFitness(self, salesman):
+        self.fitness = {}
+        for i, gene in enumerate(self.population):
+            gene.evaluation(salesman)
+            self.fitness[i] = gene.totalDist
 
-        self.best.append(max(self.fitness))
-        self.mean.append(sum(self.fitness) / len(self.fitness))
+        self.best.append(min(self.fitness.values()))
+        self.mean.append(sum(self.fitness.values()) / len(self.fitness))
 
-    def TSPFitness(self, salesman):
-        self.fitness = []
-        for gene in self.population:
-            return
+    def printMaxSolution(self):
+        print(max(self.fitness.values()))
 
-    def printBestSolution(self):
-        print(max(self.fitness))
+    def printMinSolution(self):
+        print(min(self.fitness.values()))
