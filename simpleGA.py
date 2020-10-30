@@ -8,8 +8,6 @@ import sys
 from matplotlib import pyplot as plt
 
 from geneticAlgorithm import GeneticAlgorithm
-from individual import Individual
-from knapsack import Knapsack
 from salesman import Salesman
 
 if __name__ == '__main__':
@@ -24,7 +22,7 @@ if __name__ == '__main__':
     parser.add_argument('-cprob', '--crossoverProbability', dest='crossover_prob', action='store', 
                         default=0.7, type=float, help='Set the probability of crossover operator.')
     parser.add_argument('-mprob', '--mutationProbability', dest='mutation_prob', action='store',
-                        default=0.01, type=float, help='Set the probability of mutation operator.')
+                        default=0.001, type=float, help='Set the probability of mutation operator.')
     parser.add_argument('-psize', '--populationSize', dest='population_size', action='store',
                         default=300, type=int, help='Set the size of population.')
     parser.add_argument('-gen', '--generation', dest='generation', action='store',
@@ -65,9 +63,13 @@ if __name__ == '__main__':
     # Training
     for i in range(generation):
         # tspga.orderTwoCrossover()
-        # tspga.cycleCrossover() - ban
+        # tspga.cycleCrossover()
         tspga.partialMappedCrossover()
-        tspga.reorderMutation()
+
+        # tspga.reorderMutation()
+        tspga.offspringCalculateFitness(dataset)
+        tspga.adaptiveReorderMutation()
+        
         tspga.combination()
         bf, mf = tspga.calculateFitness(dataset)
         tspga.sortingSelection()
@@ -86,7 +88,7 @@ if __name__ == '__main__':
     print('Ranking Selection best profit:', min(best_distance))
     print('Ranking Selection mean of profit:', min(mean_distance))
 
-    x_type = 'pmx_cp-0.7'
+    x_type = 'pmx_cp-0.7_mp-0.001'
 
     # Save result to json format
     result_file = args.output
@@ -98,6 +100,8 @@ if __name__ == '__main__':
                 jsonDict[i][x_type].append(best_distance[i])
             else:
                 jsonDict[i][x_type] = [best_distance[i]]
+        jsonDict[-1]['best'].append(min(best_distance))
+        jsonDict[-1]['mean'].append(min(mean_distance))
         jsonString = json.dumps(jsonDict, indent=4)
         with open(result_file, 'w') as f:
             f.write(jsonString)
@@ -110,6 +114,11 @@ if __name__ == '__main__':
                 x_type : [best_distance[i]]
             }
             tmp_list.append(tmp_dict)
+        tmp_best = {
+            'best' : [min(best_distance)],
+            'mean' : [min(mean_distance)]
+        }
+        tmp_list.append(tmp_best)
         jsonString = json.dumps(tmp_list, indent=4)
         with open(result_file, 'w') as f:
             f.write(jsonString)
