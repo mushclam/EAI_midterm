@@ -30,9 +30,10 @@ class KSPIndividual():
         # Sum all weight and profit of items individual have.
         # If totalWeight is bigger than capacity, totalProfit is 0.
         location = salesman.location
-        for i, value in enumerate(self.gene):
+        for i, _ in enumerate(self.gene):
             cur = self.gene[i]
             nxt = self.gene[(i+1)%self.geneSize]
             x = location[nxt][0] - location[cur][0]
             y = location[nxt][1] - location[cur][1]
             self.totalDist += math.sqrt(x**2 + y**2)
+        self.totalDist = 1/self.totalDist

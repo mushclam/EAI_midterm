@@ -1,3 +1,4 @@
+import os
 import json
 import numpy as np
 import datetime
@@ -5,6 +6,10 @@ import argparse
 from matplotlib import pyplot as plt
 
 if __name__ == '__main__':
+    path = os.path.abspath(__file__)
+    path = os.path.dirname(path)
+    os.chdir(path)
+
     parser = argparse.ArgumentParser(description='Output json file encoder')
     parser.add_argument('-in', '--input', dest='input', action='store',
                         default='result.json', type=str, help='Set the input filename.')
@@ -18,25 +23,28 @@ if __name__ == '__main__':
         jsonDict = json.load(f)
 
     generations = []
-    roulette_means = []
-    roulette_stds = []
-    tournament_means = []
-    tournament_stds = []
+    keys = list(jsonDict[0].keys())
+    keys.remove('generation')
+
+    means = {}
+    stds = {}
     for element in jsonDict:
         generations.append(element['generation'])
+        for key in keys:
+            ga_result = np.array(element[key])
+            if not key in means:
+                means[key] = [ga_result.mean()]
+            else:
+                means[key].append(ga_result.mean())
+            if not key in stds:
+                stds[key] = [ga_result.std()]
+            else:
+                stds[key].append(ga_result.std())
 
-        roulette = np.array(element['roulette'])
-        roulette_means.append(roulette.mean())
-        roulette_stds.append(roulette.std())
-
-        tournament = np.array(element['tournament'])
-        tournament_means.append(tournament.mean())
-        tournament_stds.append(tournament.std())
-
-    plt.errorbar(generations, roulette_means, roulette_stds, color='orange')
-    plt.errorbar(generations, tournament_means, tournament_stds, color='blue')
+    for key in keys:
+        plt.errorbar(generations, means[key], stds[key])
     plt.xlabel('generation')
     plt.ylabel('total profit')
-    plt.legend(['roulette', 'tournament'])
+    plt.legend([k for k in keys])
     now = datetime.datetime.now()
     plt.savefig('result/' + args.output)
